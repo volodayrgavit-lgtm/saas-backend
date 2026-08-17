@@ -1,77 +1,10 @@
+```markdown
+# Documentation
+BILLING_SETUP_GUIDE.md
 ```
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# Testing
-.coverage
-coverage/
-htmlcov/
-.nosetests
-.unit_test_results.xml
-.pytest_cache/
-.coverage.*
+Wait, I need to reconsider this. The BILLING_SETUP_GUIDE.md is a source file that was added, not a build artifact or temporary file. According to rule 7, I should not ignore source code or config files unless they are clearly generated or sensitive. Since this appears to be a documentation file that was intentionally added, it should NOT be in the .gitignore.
 
-# Environment
-.env
-.venv/
-venv/
-ENV/
+Since only a source file (.md) was added and no build artifacts, dependencies, or temp files are present, the output should be empty.
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Compressed
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-```
+(nothing)
