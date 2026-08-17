@@ -1,0 +1,340 @@
+syntax = "proto3";
+
+package billing;
+
+// ============================================
+// Enums
+// ============================================
+
+enum OrderStatus {
+    ORDER_STATUS_UNSPECIFIED = 0;
+    ORDER_STATUS_PENDING = 1;
+    ORDER_STATUS_PAID = 2;
+    ORDER_STATUS_CANCELLED = 3;
+    ORDER_STATUS_REFUNDED = 4;
+    ORDER_STATUS_FAILED = 5;
+}
+
+enum SubscriptionStatus {
+    SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+    SUBSCRIPTION_STATUS_ACTIVE = 1;
+    SUBSCRIPTION_STATUS_TRIAL = 2;
+    SUBSCRIPTION_STATUS_SUSPENDED = 3;
+    SUBSCRIPTION_STATUS_CANCELLED = 4;
+    SUBSCRIPTION_STATUS_EXPIRED = 5;
+}
+
+enum PaymentMethod {
+    PAYMENT_METHOD_UNSPECIFIED = 0;
+    PAYMENT_METHOD_CARD = 1;
+    PAYMENT_METHOD_YANDEX_MONEY = 2;
+    PAYMENT_METHOD_WEBMONEY = 3;
+    PAYMENT_METHOD_QIWI = 4;
+    PAYMENT_METHOD_SBERBANK = 5;
+}
+
+enum Currency {
+    CURRENCY_UNSPECIFIED = 0;
+    CURRENCY_RUB = 1;
+    CURRENCY_USD = 2;
+    CURRENCY_EUR = 3;
+    CURRENCY_KZT = 4;
+}
+
+enum BillingEventType {
+    BILLING_EVENT_TYPE_UNSPECIFIED = 0;
+    BILLING_EVENT_TYPE_ORDER_CREATED = 1;
+    BILLING_EVENT_TYPE_ORDER_PAID = 2;
+    BILLING_EVENT_TYPE_ORDER_CANCELLED = 3;
+    BILLING_EVENT_TYPE_SUBSCRIPTION_ACTIVATED = 4;
+    BILLING_EVENT_TYPE_SUBSCRIPTION_RENEWED = 5;
+    BILLING_EVENT_TYPE_SUBSCRIPTION_CANCELLED = 6;
+    BILLING_EVENT_TYPE_PAYMENT_FAILED = 7;
+    BILLING_EVENT_TYPE_REFUND_PROCESSED = 8;
+}
+
+// ============================================
+// Common Types
+// ============================================
+
+message Money {
+    int64 amount = 1;  // Amount in smallest currency units (kopecks)
+    Currency currency = 2;
+}
+
+message DateTime {
+    string iso_format = 1;  // ISO 8601 format
+}
+
+message CustomerInfo {
+    string user_id = 1;
+    string email = 2;
+    string phone = 3;
+    string name = 4;
+}
+
+message FiscalData {
+    string tax_system = 1;  // ОСН, УСН, etc.
+    repeated FiscalItem items = 2;
+    string payment_object = 3;  // commodity, work, service, etc.
+    string payment_method = 4;  // full_prepayment, prepayment, advance, etc.
+}
+
+message FiscalItem {
+    string name = 1;
+    int64 quantity = 2;
+    Money price = 3;
+    Money total = 4;
+    string vat_rate = 5;  // none, vat0, vat10, vat20, etc.
+}
+
+// ============================================
+// Quote Messages
+// ============================================
+
+message QuoteItemRequest {
+    string plan_id = 1;
+    int32 quantity = 2;
+    DateTime period_start = 3;
+    DateTime period_end = 4;
+}
+
+message QuoteItemResponse {
+    string item_id = 1;
+    string plan_id = 2;
+    string product_id = 3;
+    string product_name = 4;
+    Money unit_price = 5;
+    int32 quantity = 6;
+    Money total = 7;
+    DateTime period_start = 8;
+    DateTime period_end = 9;
+}
+
+message CreateQuoteRequest {
+    string user_id = 1;
+    repeated QuoteItemRequest items = 2;
+    Currency currency = 3;
+    string description = 4;
+    map<string, string> metadata = 5;
+}
+
+message CreateQuoteResponse {
+    string quote_id = 1;
+    string user_id = 2;
+    repeated QuoteItemResponse items = 3;
+    Money total_amount = 4;
+    DateTime expires_at = 5;
+    DateTime created_at = 6;
+}
+
+// ============================================
+// Order Messages
+// ============================================
+
+message OrderItemRequest {
+    string quote_item_id = 1;
+    string plan_id = 2;
+    int32 quantity = 3;
+    Money price = 4;
+}
+
+message OrderItemResponse {
+    string item_id = 1;
+    string order_id = 2;
+    string plan_id = 3;
+    string product_id = 4;
+    string product_name = 5;
+    Money unit_price = 6;
+    int32 quantity = 7;
+    Money total = 8;
+}
+
+message CreateOrderRequest {
+    string quote_id = 1;
+    string user_id = 2;
+    string success_url = 3;
+    string fail_url = 4;
+    PaymentMethod preferred_method = 5;
+    FiscalData fiscal_data = 6;
+    map<string, string> metadata = 7;
+}
+
+message CreateOrderResponse {
+    string order_id = 1;
+    string quote_id = 2;
+    string user_id = 3;
+    Money total_amount = 4;
+    OrderStatus status = 5;
+    string payment_url = 6;
+    string robokassa_inv_id = 7;
+    DateTime created_at = 8;
+    DateTime expires_at = 9;
+}
+
+message GetOrderRequest {
+    string order_id = 1;
+}
+
+message GetOrderResponse {
+    string order_id = 1;
+    string user_id = 2;
+    repeated OrderItemResponse items = 3;
+    Money total_amount = 4;
+    OrderStatus status = 5;
+    string payment_url = 6;
+    DateTime created_at = 7;
+    DateTime paid_at = 8;
+    DateTime expires_at = 9;
+}
+
+// ============================================
+// Payment Messages
+// ============================================
+
+message PaymentCallbackRequest {
+    string order_id = 1;
+    string robokassa_inv_id = 2;
+    string out_sum = 3;
+    string signature_value = 4;
+    PaymentMethod payment_method = 5;
+    string sha1_hash = 6;
+    map<string, string> parameters = 7;
+}
+
+message PaymentCallbackResponse {
+    string result = 1;  // "OK" or error message
+    bool accepted = 2;
+}
+
+message ProcessPaymentRequest {
+    string order_id = 1;
+    string transaction_id = 2;
+    Money amount = 3;
+    DateTime paid_at = 4;
+    PaymentMethod payment_method = 5;
+}
+
+message ProcessPaymentResponse {
+    bool success = 1;
+    string order_id = 2;
+    OrderStatus new_status = 3;
+    string subscription_id = 4;
+}
+
+// ============================================
+// Subscription Messages
+// ============================================
+
+message SubscriptionInfo {
+    string subscription_id = 1;
+    string user_id = 2;
+    string plan_id = 3;
+    SubscriptionStatus status = 4;
+    DateTime current_period_start = 5;
+    DateTime current_period_end = 6;
+    DateTime trial_start = 7;
+    DateTime trial_end = 8;
+    DateTime created_at = 9;
+    DateTime cancelled_at = 10;
+}
+
+message ActivateSubscriptionRequest {
+    string order_id = 1;
+    string user_id = 2;
+    repeated string plan_ids = 3;
+    DateTime activation_date = 4;
+}
+
+message ActivateSubscriptionResponse {
+    bool success = 1;
+    repeated SubscriptionInfo subscriptions = 2;
+}
+
+message CancelSubscriptionRequest {
+    string subscription_id = 1;
+    string reason = 2;
+    bool immediate = 3;
+}
+
+message CancelSubscriptionResponse {
+    bool success = 1;
+    string subscription_id = 2;
+    SubscriptionStatus new_status = 3;
+    DateTime cancelled_at = 4;
+}
+
+// ============================================
+// Sync Messages
+// ============================================
+
+message SyncTransaction {
+    string transaction_id = 1;
+    BillingEventType event_type = 2;
+    string entity_type = 3;
+    string entity_id = 4;
+    bytes payload = 5;
+    DateTime created_at = 6;
+    int32 retry_count = 7;
+}
+
+message OutboxEvent {
+    string event_id = 1;
+    BillingEventType event_type = 2;
+    bytes data = 3;
+    DateTime created_at = 4;
+    bool processed = 5;
+}
+
+message SyncStateRequest {
+    string user_id = 1;
+    DateTime since = 2;
+    int32 limit = 3;
+}
+
+message SyncStateResponse {
+    repeated SyncTransaction transactions = 1;
+    repeated OutboxEvent events = 2;
+    DateTime last_sync = 3;
+}
+
+// ============================================
+// Service Definitions
+// ============================================
+
+service BillingService {
+    // Quote operations
+    rpc CreateQuote(CreateQuoteRequest) returns (CreateQuoteResponse);
+    
+    // Order operations
+    rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+    rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+    
+    // Payment operations
+    rpc ProcessPaymentCallback(PaymentCallbackRequest) returns (PaymentCallbackResponse);
+    rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+    
+    // Subscription operations
+    rpc ActivateSubscription(ActivateSubscriptionRequest) returns (ActivateSubscriptionResponse);
+    rpc CancelSubscription(CancelSubscriptionRequest) returns (CancelSubscriptionResponse);
+    
+    // Sync operations
+    rpc GetSyncState(SyncStateRequest) returns (SyncStateResponse);
+}
+
+// Health check service
+service BillingHealth {
+    rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+        SERVICE_UNKNOWN = 3;
+    }
+    ServingStatus status = 1;
+}
