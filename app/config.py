@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
+    # Robokassa
+    ROBOKASSA_MERCHANT_LOGIN: str = ""
+    ROBOKASSA_PASSWORD1: str = ""
+    ROBOKASSA_PASSWORD2: str = ""
+    ROBOKASSA_IS_TEST: bool = True
+    ROBOKASSA_HOLD_MODE: bool = False
+    ROBOKASSA_RECEIPT_ENABLED: bool = False
+
     @property
     def allowed_email_domains_list(self) -> List[str]:
         return [d.strip().lower() for d in self.ALLOWED_EMAIL_DOMAINS.split(",") if d.strip()]
